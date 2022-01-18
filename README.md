@@ -1,1 +1,1 @@
-# spin
+# chip-8-emu
