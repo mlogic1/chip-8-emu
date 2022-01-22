@@ -8,7 +8,13 @@
 datatype LoadRom(const char* path, int* dataSize)
 {
 	FILE* inFile;
-	fopen_s(&inFile, path, "rb");
+#ifdef WIN32
+    fopen_s(&inFile, path, "rb");
+#else
+    inFile = fopen(path, "rb");
+#endif // WIN32
+
+
 	if (!inFile)
 		return NULL;
 

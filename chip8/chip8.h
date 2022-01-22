@@ -268,7 +268,7 @@ void EmuCycle()
 		{
 			printf("Bla");
 			break;
-		}		
+		}
 
 		default:
 		{

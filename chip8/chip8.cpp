@@ -4,12 +4,19 @@
 
 int main()
 {
-	EmuInit();
+
 	// load rom
-	
+
 	// datatype data = LoadRom("C:\\Users\\Filip\\Desktop\\pong.ch8");
 	int dataSize = 0;
 	datatype data = LoadRom("C:\\Users\\Filip\\Desktop\\ibm-logo.ch8", &dataSize);
+	if (!data)
+	{
+		std::cout<<"Unable to load rom file"<<std::endl;
+		return -1;
+	}
+
+	EmuInit();
 	EmuLoadRom(data, dataSize);
 	UnloadRom(data);
 
@@ -51,7 +58,7 @@ int main()
 
 		// break;
 	}
-	
+
 	EmuDeInit();
 	return 0;
 }
