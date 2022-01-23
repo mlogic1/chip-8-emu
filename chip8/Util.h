@@ -5,7 +5,7 @@
 #define datatype const char*
 #define datatypenoconst char*
 
-datatype LoadRom(const char* path, int* dataSize)
+static datatype LoadRom(const char* path, int* dataSize)
 {
 	FILE* inFile;
 #ifdef WIN32
@@ -29,7 +29,7 @@ datatype LoadRom(const char* path, int* dataSize)
 	return data;
 }
 
-void UnloadRom(datatype data)
+static void UnloadRom(datatype data)
 {
 	free((datatypenoconst)data);
 }
