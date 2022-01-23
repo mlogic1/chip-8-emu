@@ -7,6 +7,10 @@
 #define CHIP8_GPU_BUFFER 64 * 32
 #define CHIP8_WORD unsigned short
 
+#include "EmuWindow.h"
+// bad pointer
+EmuWindow* win;
+
 unsigned char* _memory;
 unsigned short _opcode;
 unsigned char _V[16];   // 16 8bit registers named V0 to VF
@@ -112,21 +116,61 @@ void _DXYN(CHIP8_WORD VX, CHIP8_WORD VY, CHIP8_WORD N)
 	for (int i = 0; i < N; ++i)
 	{
 		CHIP8_WORD pixel = _memory[_I + i];
+
 		for (int j = 0; j < 8; ++j)
 		{
-			if (pixel != 0)
+		    unsigned char& displayPixel = _graphics[i * 64 + j];
+			if (pixel == '1' && displayPixel == '1')
 			{
-
-			}
-			if (_graphics[i * 64 + j] == '1' )
-			{
-				_graphics[i * 64 + j] == '0';
-				_V[0xF] = 1;
+                displayPixel = '0';
+                _V[0xF] = 1;
+			}else if (pixel == '1' && displayPixel == '0'){
+			    displayPixel = '1';
 			}
 		}
 	}
 
 	_PC += 2;
+	win->UpdateGraphics(_graphics); // bad
+}
+
+void _FX07(CHIP8_WORD VX)
+{
+    _PC += 2;
+}
+
+void _FX15(CHIP8_WORD VX)
+{
+
+    _PC += 2;
+}
+
+void _FX18(CHIP8_WORD)
+{
+    _PC += 2;
+}
+
+void _FX29(CHIP8_WORD VX)
+{
+    _I = _V[VX] * 5;
+    _PC += 2;
+}
+
+void _FX33(CHIP8_WORD VX)
+{
+    unsigned char val = _V[VX];
+    _memory[_I] = val / 100;
+    _memory[_I + 1] = (val / 10) % 10;
+    _memory[_I + 2] = val % 10;
+
+    _PC += 2;
+}
+
+void _FX65(CHIP8_WORD VX)
+{
+    for (CHIP8_WORD i = 0x0; i <= VX; ++i)
+        _V[i] = _memory[_I + i];
+    _PC += 2;
 }
 
 void EmuInit()
@@ -270,9 +314,33 @@ void EmuCycle()
 			break;
 		}
 
+		case 0xF000:
+        {
+            if (decoded[3] == 0x0007){
+                _FX07(decoded[3] >> 8);
+            }
+            else if (decoded[3] == 0x0015){
+                _FX15(decoded[3] >> 8);
+            }
+            else if (decoded[3] == 0x0018){
+                _FX18(decoded[3] >> 8);
+            }
+            else if (decoded[3] == 0x0029){
+                _FX29(decoded[3] >> 8);
+            }else if (decoded[3] == 0x0033){
+                _FX33(decoded[1] >> 8);
+            }else if (decoded[3] == 0x0065){
+                _FX65(decoded[1] >> 8);
+            }else
+            {
+                printf("unknown F opcode %X\n", _opcode);
+            }
+            break;
+        }
+
 		default:
 		{
-			printf("unknown opcode %X\n", decoded[0]);
+			printf("unknown opcode %X\n", _opcode);
 			break;
 		}
 	}
