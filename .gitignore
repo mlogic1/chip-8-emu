@@ -13,4 +13,5 @@ Debug
 *.filters
 *.user
 EmuGui/obj
-.vscode
+.vscode/
+build
