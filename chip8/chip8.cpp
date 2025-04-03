@@ -58,7 +58,7 @@ void _DXYN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY, CHIP8_WORD N)
 
 	printf("Draw sprite with height of %d, at %d,%d\n", N, xCord, yCord);
 
-	chip8->_V[0xF] = 0;
+	chip8->_V[0xF] = 0;	// Reset collision flag
 
 	for (int i = 0; i < N; ++i)
 	{
@@ -66,13 +66,17 @@ void _DXYN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY, CHIP8_WORD N)
 
 		for (int j = 0; j < 8; ++j)
 		{
-			unsigned char& displayPixel = chip8->_graphics[i * 64 + j];
-			if (pixel == '1' && displayPixel == '1')
+			if ((pixel & (0x80 >> j)) != 0) // Check if the j-th bit of the sprite is set
 			{
-				displayPixel = '0';
-				chip8->_V[0xF] = 1;
-			}else if (pixel == '1' && displayPixel == '0'){
-				displayPixel = '1';
+				int x = (xCord + j) % 64; // Wrap X-coordinate
+				int y = (yCord + i) % 32; // Wrap Y-coordinate
+				unsigned char& displayPixel = chip8->_graphics[y * 64 + x];
+
+				if (displayPixel == 1)
+				{
+					chip8->_V[0xF] = 1; // Collision detected
+				}
+				displayPixel ^= 1; // Toggle pixel using XOR
 			}
 		}
 	}
@@ -128,34 +132,34 @@ void EmuInit(Chip8* chip8)
 	chip8->_memory = (unsigned char*)calloc(CHIP8_MEM_SIZE, sizeof(unsigned char));
 	for (int i = 0; i < 0x1000; ++i)
 		chip8->_memory[i] = 0;
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 	printf("Initializing graphics buffer: %d bytes...", CHIP8_GPU_BUFFER);
 	chip8->_graphics = (unsigned char*)calloc(CHIP8_GPU_BUFFER, sizeof(unsigned char));
 	for (int i = 0; i < CHIP8_GPU_BUFFER; ++i)
 		chip8->_graphics[i] = 0;
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 	printf("Initialzing registers...");
 	memset(chip8->_V, 0, sizeof(chip8->_V));
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 	printf("Initialzing program counter: 0x200...");
 	chip8->_PC = 0x200;
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 	printf("Initialzing index...");
 	chip8->_I = 0;
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 	printf("Initialzing stack pointer...");
 	chip8->_sp = 0;
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 	printf("Initialzing stack...");
 	for (int i = 0; i < 0xF; ++i)
 		chip8->_pcCallStack[i] = 0x00;
-	printf("DONE\n");
+	printf("\tDONE\n");
 
 }
 
@@ -251,13 +255,13 @@ void EmuCycle(Chip8* chip8)
 
 		case 0xE09E:
 		{
-			printf("Bla");
+			printf("Unimplemented opcode");
 			break;
 		}
 
 		case 0xE0A1:
 		{
-			printf("Bla");
+			printf("Unimplemented opcode");
 			break;
 		}
 
