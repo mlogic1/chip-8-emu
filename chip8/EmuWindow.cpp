@@ -5,23 +5,23 @@
 
 EmuWindow::EmuWindow()
 {
-    m_window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 64, 32, SDL_WINDOW_RESIZABLE);
-    m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC);
-    m_graphicsTexture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 64, 32);
-	
-	
+	m_window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 300, SDL_WINDOW_RESIZABLE);
+	m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_PRESENTVSYNC);
+	m_graphicsTexture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 64, 32);
+
+
 	int dataSize = 0;
 	datatype data = LoadRom("/Users/filip/Projects/chip8_roms/bin/6-keypad.ch8", &dataSize);
 	if (!data)
 	{
 		throw std::runtime_error("Unable to load rom file");
-		
+
 	}
-	
+
 	m_emu = (Chip8*)malloc(sizeof(Chip8));
 	EmuInit(m_emu);
 	EmuSetDisplay(m_emu, this);
-	
+
 	EmuLoadRom(m_emu, data, dataSize);
 	UnloadRom(data);
 }
@@ -30,41 +30,41 @@ EmuWindow::~EmuWindow()
 {
 	EmuDeInit(m_emu);
 	free(m_emu);
-    SDL_DestroyTexture(m_graphicsTexture);
-    SDL_DestroyRenderer(m_renderer);
-    SDL_DestroyWindow(m_window);
+	SDL_DestroyTexture(m_graphicsTexture);
+	SDL_DestroyRenderer(m_renderer);
+	SDL_DestroyWindow(m_window);
 }
 
 void EmuWindow::Update()
 {
-    SDL_Event event;
+	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
 		HandleEvents(event);
 	}
 
 	static int prevTime = SDL_GetTicks();
-    int thisTime = SDL_GetTicks();
-    const float dt = (thisTime - prevTime) / 1000.0f;
-    prevTime = thisTime;
-	
+	int thisTime = SDL_GetTicks();
+	const float dt = (thisTime - prevTime) / 1000.0f;
+	prevTime = thisTime;
+
 	int windowWidth, windowHeight;
 	SDL_GetWindowSize(m_window, &windowWidth, &windowHeight);
-	
+
 	SDL_Rect destRect;
 	destRect.x = 0;
 	destRect.y = 0;
 	destRect.w = windowWidth;
 	destRect.h = windowHeight;
-	
-    // render
-    SDL_RenderClear(m_renderer);
-    SDL_RenderCopy(m_renderer, m_graphicsTexture, NULL, &destRect);
-    SDL_RenderPresent(m_renderer);
-    // SDL_Delay(16);
-	
+
+	// render
+	SDL_RenderClear(m_renderer);
+	SDL_RenderCopy(m_renderer, m_graphicsTexture, NULL, &destRect);
+	SDL_RenderPresent(m_renderer);
+	// SDL_Delay(16);
+
 	// Timing setup for cycles
 	static Uint32 lastCycleTime = SDL_GetTicks();
-	const int cycleRate = 700;               // Target: 500 instructions per second
+	const int cycleRate = 80;               // Target: 500 instructions per second
 	const float cycleInterval = 1000.0f / cycleRate; // Milliseconds per cycle
 
 	// Execute cycles until we've caught up to the target timing
@@ -99,7 +99,7 @@ void EmuWindow::DrawInstruction(unsigned char* graphicsPtr)
 
 bool EmuWindow::IsRunning() const
 {
-    return m_isRunning;
+	return m_isRunning;
 }
 
 void EmuWindow::HandleEvents(const SDL_Event& event)
@@ -123,8 +123,8 @@ void EmuWindow::HandleEvents(const SDL_Event& event)
 		{ SDLK_e, 14 },
 		{ SDLK_f, 15 }
 	};
-	
-    switch (event.type)
+
+	switch (event.type)
 	{
 		case SDL_KEYDOWN:
 		{
@@ -142,7 +142,7 @@ void EmuWindow::HandleEvents(const SDL_Event& event)
 			{
 				EmuKeyRelease(m_emu, SDLKEY_CHIPMAP.at(event.key.keysym.sym));
 			}
-			
+
 			break;
 		}
 
