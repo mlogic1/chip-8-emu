@@ -1,16 +1,16 @@
 #include <iostream>
 #include "chip8.h"
 #include "Util.h"
-#include "EmuWindow.h"
-
-#include "EmuWindow.h"
-// bad pointer
-EmuWindow* win;
 
 void _00E0(Chip8* chip8)
 {
-	printf("TODO clear the screen\n");
+	for (int i = 0; i < CHIP8_GPU_BUFFER; ++i)
+		chip8->_graphics[i] = 0;
 	chip8->_PC += 2;
+	if (chip8->_display)
+	{
+		chip8->_display->DrawInstruction(chip8->_graphics);
+	}
 }
 
 void _00EE(Chip8* chip8)
@@ -32,6 +32,42 @@ void _2NNN(Chip8* chip8, CHIP8_WORD NNN)
 	chip8->_PC = NNN;
 }
 
+void _3XNN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD NN)
+{
+	if (chip8->_V[VX] == NN)
+	{
+		chip8->_PC += 4;
+	}
+	else
+	{
+		chip8->_PC += 2;
+	}
+}
+
+void _4XNN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD NN)
+{
+	if (chip8->_V[VX] != NN)
+	{
+		chip8->_PC += 4;
+	}
+	else
+	{
+		chip8->_PC += 2;
+	}
+}
+
+void _5XY0(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	if (chip8->_V[VX] == chip8->_V[VY])
+	{
+		chip8->_PC += 4;
+	}
+	else
+	{
+		chip8->_PC += 2;
+	}
+}
+
 void _6XNN(Chip8* chip8, const short VX, const short NN)
 {
 	chip8->_V[VX] = NN;
@@ -42,6 +78,37 @@ void _7XNN(Chip8* chip8, const unsigned short VX, const unsigned short NN)
 {
 	chip8->_V[VX] += NN;
 	chip8->_PC += 2;
+}
+
+void _8XY0(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	chip8->_V[VX] = chip8->_V[VY];
+	chip8->_PC += 2;
+}
+
+void _8XY1(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	chip8->_V[VX] |= chip8->_V[VY];
+	chip8->_PC += 2;
+}
+
+void _8XYE(Chip8* chip8, CHIP8_WORD VX)
+{
+	chip8->_V[0xF] = (chip8->_V[VX] >> 7) & 0x1;
+	chip8->_V[VX] <<= 1;
+	chip8->_PC += 2;
+}
+
+void _9XY0(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	if (chip8->_V[VX] != chip8->_V[VY])
+	{
+		chip8->_PC += 4;
+	}
+	else
+	{
+		chip8->_PC += 2;
+	}
 }
 
 void _ANNN(Chip8* chip8, unsigned short NNN)
@@ -82,22 +149,75 @@ void _DXYN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY, CHIP8_WORD N)
 	}
 
 	chip8->_PC += 2;
-	win->UpdateGraphics(chip8->_graphics); // bad
+	if (chip8->_display)
+	{
+		chip8->_display->DrawInstruction(chip8->_graphics);
+	}
+}
+
+void _EX9E(Chip8* chip8, CHIP8_WORD VX)
+{
+	if (chip8->_keyboard[chip8->_V[VX]] == 1)
+	{
+		chip8->_PC += 4;
+	}
+	else
+	{
+		chip8->_PC += 2;
+	}
+}
+
+void _EXA1(Chip8* chip8, CHIP8_WORD VX)
+{
+	if (chip8->_keyboard[chip8->_V[VX]] == 0)
+	{
+		chip8->_PC += 4;
+	}
+	else
+	{
+		chip8->_PC += 2;
+	}
+}
+
+void _FX0A(Chip8* chip8, CHIP8_WORD VX)
+{
+	bool keyPressed = false;
+	for (int i = 0; i < 16; ++i)
+	{
+		if (chip8->_keyboard[i]){
+			keyPressed = true;
+			chip8->_V[VX] = i;
+		}
+	}
+
+	if (keyPressed){
+	 chip8->_PC += 2;
+	}
 }
 
 void _FX07(Chip8* chip8, CHIP8_WORD VX)
 {
+	chip8->_V[VX] = chip8->_delaytimer;
 	chip8->_PC += 2;
 }
 
 void _FX15(Chip8* chip8, CHIP8_WORD VX)
 {
-
+	chip8->_delaytimer = chip8->_V[VX];
 	chip8->_PC += 2;
 }
 
 void _FX18(Chip8* chip8, CHIP8_WORD)
 {
+	std::cout << "fx18 not implemented" << std::endl;
+	chip8->_PC += 2;
+}
+
+void _FX1E(Chip8* chip8, CHIP8_WORD VX)
+{
+	chip8->_I += chip8->_V[VX];
+
+	chip8->_V[0xF] = (chip8->_I > 0x0FFF);
 	chip8->_PC += 2;
 }
 
@@ -117,6 +237,15 @@ void _FX33(Chip8* chip8, CHIP8_WORD VX)
 	chip8->_PC += 2;
 }
 
+void _FX55(Chip8* chip8, CHIP8_WORD VX)
+{
+	for (uint8_t i = 0; i <= VX; ++i)
+	{
+		chip8->_memory[chip8->_I + i] = chip8->_V[i];
+	}
+	chip8->_PC += 2;
+}
+
 void _FX65(Chip8* chip8, CHIP8_WORD VX)
 {
 	for (CHIP8_WORD i = 0x0; i <= VX; ++i)
@@ -124,9 +253,24 @@ void _FX65(Chip8* chip8, CHIP8_WORD VX)
 	chip8->_PC += 2;
 }
 
+void _Timers(Chip8* chip8)
+{
+	if ( chip8->_delaytimer > 0)
+	{
+		chip8->_delaytimer -= 1;
+	}
+}
+
 void EmuInit(Chip8* chip8)
 {
 	printf("--- CHIP-8 ---\n");
+
+	chip8->_display = NULL;
+	for (int i = 0; i < 16; ++i)
+	{
+		chip8->_keyboard[i] = false;
+	}
+
 
 	printf("Initializing main memory: %d bytes...", CHIP8_MEM_SIZE);
 	chip8->_memory = (unsigned char*)calloc(CHIP8_MEM_SIZE, sizeof(unsigned char));
@@ -224,6 +368,34 @@ void EmuCycle(Chip8* chip8)
 			break;
 		}
 
+		case 0x3000:
+		{
+			_3XNN(chip8, decoded[1] >> 8, decoded[3]);
+			break;
+		}
+
+		case 0x4000:
+		{
+			_4XNN(chip8, decoded[1] >> 8, decoded[3]);
+			break;
+		}
+
+		case 0x5000:
+		{
+			CHIP8_WORD lastByte = opcode & 0x000F;
+			CHIP8_WORD VX = decoded[1] >> 8;
+			CHIP8_WORD VY = (opcode & 0x00F0) >> 4;
+			if (lastByte == 0x0000)
+			{
+				_5XY0(chip8, VX, VY);
+			}
+			else
+			{
+				printf("unknown opcode %X\n", opcode);
+			}
+			break;
+		}
+
 		case 0x6000:
 		{
 			_6XNN(chip8, decoded[1] >> 8, decoded[3]);
@@ -235,6 +407,44 @@ void EmuCycle(Chip8* chip8)
 			CHIP8_WORD VX = decoded[1] >> 8;
 			CHIP8_WORD NN = decoded[3];
 			_7XNN(chip8, VX, NN);
+			break;
+		}
+
+		case 0x8000:
+		{
+			CHIP8_WORD lastByte = opcode & 0x000F;
+			CHIP8_WORD VX = decoded[1] >> 8;
+			CHIP8_WORD VY = (opcode & 0x00F0) >> 4;
+			if (lastByte == 0x0000){
+				_8XY0(chip8, VX, VY);
+			}
+			else if (lastByte == 0x0001){
+				_8XY1(chip8, VX, VY);
+			}
+			else if (lastByte == 0x000E){
+				_8XYE(chip8, VX);
+			}
+			else{
+				printf("unknown opcode %X\n", opcode);
+			}
+
+			break;
+		}
+
+		case 0x9000:
+		{
+			CHIP8_WORD lastByte = opcode & 0x000F;
+			CHIP8_WORD VX = decoded[1] >> 8;
+			CHIP8_WORD VY = (opcode & 0x00F0) >> 4;
+
+			if (lastByte == 0x0000)
+			{
+				_9XY0(chip8, VX, VY);
+			}
+			else
+			{
+				printf("unknown opcode %X\n", opcode);
+			}
 			break;
 		}
 
@@ -253,36 +463,47 @@ void EmuCycle(Chip8* chip8)
 			break;
 		}
 
-		case 0xE09E:
+		case 0xE000:
 		{
-			printf("Unimplemented opcode");
-			break;
-		}
-
-		case 0xE0A1:
-		{
-			printf("Unimplemented opcode");
+			if (decoded[3] == 0x009E){
+				_EX9E(chip8, decoded[1] >> 8);
+			}else if (decoded[3] == 0x00A1){
+				_EXA1(chip8, decoded[1] >> 8);
+			}
+			else{
+				printf("unknown opcode %X\n", opcode);
+			}
 			break;
 		}
 
 		case 0xF000:
 		{
-			if (decoded[3] == 0x0007){
+			if (decoded[3] == 0x000A)
+			{
+				_FX0A(chip8, decoded[1] >> 8);
+			}
+			else if (decoded[3] == 0x0007){
 				_FX07(chip8, decoded[3] >> 8);
 			}
 			else if (decoded[3] == 0x0015){
-				_FX15(chip8, decoded[3] >> 8);
+				_FX15(chip8, decoded[1] >> 8);
 			}
 			else if (decoded[3] == 0x0018){
-				_FX18(chip8, decoded[3] >> 8);
+				_FX18(chip8, decoded[1] >> 8);
+			}
+			else if (decoded[3] == 0x001E){
+				_FX1E(chip8, decoded[1] >> 8);
 			}
 			else if (decoded[3] == 0x0029){
-				_FX29(chip8, decoded[3] >> 8);
+				_FX29(chip8, decoded[1] >> 8);
 			}else if (decoded[3] == 0x0033){
 				_FX33(chip8, decoded[1] >> 8);
+			}else if (decoded[3] == 0x0055){
+				_FX55(chip8, decoded[1] >> 8);
 			}else if (decoded[3] == 0x0065){
 				_FX65(chip8, decoded[1] >> 8);
-			}else
+			}
+			else
 			{
 				printf("unknown F opcode %X\n", opcode);
 			}
@@ -296,5 +517,20 @@ void EmuCycle(Chip8* chip8)
 		}
 	}
 
-	// Update timers
+	_Timers(chip8); // TODO: timers need to be updated at a pace of 60hz. Currently this is being called at 700 hz
+}
+
+void EmuSetDisplay(Chip8* chip8, IDisplay* display)
+{
+	chip8->_display = display;
+}
+
+void EmuKeyPress(Chip8* chip8, uint8_t keyIndex)
+{
+	chip8->_keyboard[keyIndex] = true;
+}
+
+void EmuKeyRelease(Chip8* chip8, uint8_t keyIndex)
+{
+	chip8->_keyboard[keyIndex] = false;
 }

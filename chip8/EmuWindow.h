@@ -1,15 +1,17 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include "IDisplay.h"
+#include "chip8.h"
 
-class EmuWindow
+class EmuWindow : public IDisplay
 {
     public:
         EmuWindow();
         ~EmuWindow();
 
         void Update();
-        void UpdateGraphics(unsigned char* graphics);
+		void DrawInstruction(unsigned char* graphicsPtr) override;
         bool IsRunning() const;
 
     private:
@@ -21,5 +23,5 @@ class EmuWindow
         SDL_Texture* m_graphicsTexture; // a 64x32 native chip-8 texture
 
         bool m_isRunning = true;
-
+		Chip8* m_emu = nullptr;
 };

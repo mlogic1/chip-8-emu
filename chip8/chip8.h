@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "IDisplay.h"
 
 #define CHIP8_MEM_SIZE 4096
 #define CHIP8_GPU_BUFFER 64 * 32
@@ -25,7 +26,7 @@ struct Chip8
 	unsigned short _pcCallStack[16];
 	unsigned short _sp;
 
-	unsigned char _keyboard[16];
+	bool _keyboard[16];
 
 	// not mine
     unsigned char chip8_fontset[80] =
@@ -47,6 +48,8 @@ struct Chip8
        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
        0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     };
+	
+	IDisplay* _display;
 };
 
 
@@ -57,21 +60,10 @@ int y = (expr & 0x00F0) >> 4;
 int z = expr & 0x000F;
 */
 
-void _00E0(Chip8* chip8);
-void _00EE(Chip8* chip8);
-void _1NNN(Chip8* chip8, unsigned short NNN);
-void _2NNN(Chip8* chip8, CHIP8_WORD NNN);
-void _6XNN(Chip8* chip8, const short VX, const short NN);
-void _7XNN(Chip8* chip8, const unsigned short VX, const unsigned short NN);
-void _ANNN(Chip8* chip8, unsigned short NNN);
-void _DXYN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY, CHIP8_WORD N);
-void _FX07(Chip8* chip8, CHIP8_WORD VX);
-void _FX15(Chip8* chip8, CHIP8_WORD VX);
-void _FX18(Chip8* chip8, CHIP8_WORD);
-void _FX29(Chip8* chip8, CHIP8_WORD VX);
-void _FX33(Chip8* chip8, CHIP8_WORD VX);
-void _FX65(Chip8* chip8, CHIP8_WORD VX);
 void EmuInit(Chip8* chip8);
 void EmuLoadRom(Chip8* chip8, const char* data, const int dataSize);
 void EmuDeInit(Chip8* chip8);
 void EmuCycle(Chip8* chip8);
+void EmuSetDisplay(Chip8* chip8, IDisplay* display);
+void EmuKeyPress(Chip8* chip8, uint8_t keyIndex);
+void EmuKeyRelease(Chip8* chip8, uint8_t keyIndex);
