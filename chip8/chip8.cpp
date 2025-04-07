@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdlib.h>
 #include "chip8.h"
 #include "Util.h"
 
@@ -92,6 +93,34 @@ void _8XY1(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
 	chip8->_PC += 2;
 }
 
+void _8XY2(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	chip8->_V[VX] &= chip8->_V[VY];
+	chip8->_PC += 2;
+}
+
+void _8XY5(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	if (chip8->_V[VX] >= chip8->_V[VY])
+	{
+		chip8->_V[0xF] = 1;  // No borrow
+	}
+	else
+	{
+		chip8->_V[0xF] = 0;  // Borrow occurred
+	}
+	chip8->_V[VX] -= chip8->_V[VY];  // Subtract VY from VX
+	chip8->_PC += 2;
+}
+
+void _8XY4(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
+{
+	unsigned int sum = chip8->_V[VX] + chip8->_V[VY];
+	chip8->_V[0xF] = (sum > 255) ? 1 : 0;  // Set carry flag if overflow
+	chip8->_V[VX] = sum & 0xFF;            // Store only the least significant 8 bits
+	chip8->_PC += 2;
+}
+
 void _8XYE(Chip8* chip8, CHIP8_WORD VX)
 {
 	chip8->_V[0xF] = (chip8->_V[VX] >> 7) & 0x1;
@@ -114,6 +143,17 @@ void _9XY0(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD VY)
 void _ANNN(Chip8* chip8, unsigned short NNN)
 {
 	chip8->_I = NNN;
+	chip8->_PC += 2;
+}
+
+void _CXNN(Chip8* chip8, CHIP8_WORD VX, CHIP8_WORD NN)
+{
+	// Seed the random number generator
+	srand((unsigned int)time(NULL));
+
+	// Generate a random integer between 0 and 255
+	uint8_t random_number = rand() % 256;
+	chip8->_V[VX] = random_number & NN;
 	chip8->_PC += 2;
 }
 
@@ -421,6 +461,15 @@ void EmuCycle(Chip8* chip8)
 			else if (lastByte == 0x0001){
 				_8XY1(chip8, VX, VY);
 			}
+			else if (lastByte == 0x0002){
+				_8XY2(chip8, VX, VY);
+			}
+			else if (lastByte == 0x0005){
+				_8XY5(chip8, VX, VY);
+			}
+			else if (lastByte == 0x0004){
+				_8XY4(chip8, VX, VY);
+			}
 			else if (lastByte == 0x000E){
 				_8XYE(chip8, VX);
 			}
@@ -451,6 +500,12 @@ void EmuCycle(Chip8* chip8)
 		case 0xA000:
 		{
 			_ANNN(chip8, opcode & 0x0FFF);
+			break;
+		}
+			
+		case 0xC000:
+		{
+			_CXNN(chip8, decoded[1] >> 8, decoded[3]);
 			break;
 		}
 

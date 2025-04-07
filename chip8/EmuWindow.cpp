@@ -64,8 +64,8 @@ void EmuWindow::Update()
 
 	// Timing setup for cycles
 	static Uint32 lastCycleTime = SDL_GetTicks();
-	const int cycleRate = 80;               // Target: 500 instructions per second
-	const float cycleInterval = 1000.0f / cycleRate; // Milliseconds per cycle
+	const int cycleRate = 700;							// Target: 700 instructions per second
+	const float cycleInterval = 1000.0f / cycleRate;	// Milliseconds per cycle
 
 	// Execute cycles until we've caught up to the target timing
 	Uint32 currentTime = SDL_GetTicks();
